@@ -3,9 +3,14 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import 'search_results_screen.dart';
 
-class SearchScreen extends StatelessWidget {
+class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
+  @override
+  State<SearchScreen> createState() => _SearchScreenState();
+}
+
+class _SearchScreenState extends State<SearchScreen> {
   static const _primary = Color(0xFF0875E1);
   static const _dark = Color(0xFF10264F);
   static const _bg = Color(0xFFF4F9FF);
@@ -24,40 +29,104 @@ class SearchScreen extends StatelessWidget {
     ('باطنة', 'internal-medicine.svg'),
   ];
 
+  final TextEditingController _controller = TextEditingController();
+  String _query = '';
+
+  String _normalizeArabic(String value) {
+    return value
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .replaceAll('أ', 'ا')
+        .replaceAll('إ', 'ا')
+        .replaceAll('آ', 'ا')
+        .replaceAll('ة', 'ه')
+        .replaceAll('ى', 'ي');
+  }
+
+  String get _normalizedQuery => _normalizeArabic(_query);
+
+  List<SearchDoctor> get _matchingDoctors {
+    if (_normalizedQuery.isEmpty) return [];
+
+    return searchDoctors.where((doctor) {
+      // البحث هنا عن الدكاترة فقط، وليس عن التخصصات.
+      // تضمين اللقب يجعل البحث بكلمة "دكتور" أو "دكتورة" يعرض النتائج.
+      final searchable = _normalizeArabic(
+        '${doctor.title} ${doctor.name} ${doctor.center} '
+        '${doctor.area} ${doctor.city} ${doctor.clinic}',
+      );
+      return searchable.contains(_normalizedQuery);
+    }).toList();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _openResults({String specialty = 'الكل', String query = ''}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            SearchResultsScreen(specialty: specialty, initialQuery: query),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final searching = _normalizedQuery.isNotEmpty;
+    final doctors = _matchingDoctors;
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: _bg,
         body: Column(
           children: [
-            _header(context),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 22, 20, 8),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  'اختار التخصص',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: _dark,
-                  ),
-                ),
-              ),
-            ),
+            _header(),
             Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: _specialties.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 14,
-                  crossAxisSpacing: 14,
-                  childAspectRatio: 1.15,
-                ),
-                itemBuilder: (_, i) => _card(context, _specialties[i]),
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+                children: [
+                  Text(
+                    searching ? 'نتائج البحث' : 'اختار التخصص',
+                    style: const TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.bold,
+                      color: _dark,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  if (searching) ...[
+                    const Text(
+                      'الدكاترة',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: _dark,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (doctors.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Text(
+                          'مفيش دكاترة مطابقين. جرّب اسم الدكتور أو المنطقة.',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                    for (final doctor in doctors) _doctorSuggestion(doctor),
+                  ],
+
+                  if (!searching)
+                    for (final specialty in _specialties)
+                      _specialtyRow(specialty),
+                ],
               ),
             ),
           ],
@@ -66,7 +135,7 @@ class SearchScreen extends StatelessWidget {
     );
   }
 
-  Widget _header(BuildContext context) => Container(
+  Widget _header() => Container(
     width: double.infinity,
     padding: EdgeInsets.fromLTRB(
       20,
@@ -120,15 +189,33 @@ class SearchScreen extends StatelessWidget {
             children: [
               SvgPicture.asset('${_icons}search.svg', width: 20, height: 20),
               const SizedBox(width: 10),
-              const Expanded(
+              Expanded(
                 child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'ابحث بالتخصص أو اسم الدكتور',
+                  controller: _controller,
+                  onChanged: (value) {
+                    setState(() => _query = value);
+                  },
+                  onSubmitted: (value) {
+                    if (value.trim().isNotEmpty) {
+                      _openResults(query: value.trim());
+                    }
+                  },
+                  decoration: const InputDecoration(
+                    hintText: 'ابحث باسم الدكتور أو المنطقة',
                     hintStyle: TextStyle(fontSize: 13, color: Colors.grey),
                     border: InputBorder.none,
                   ),
                 ),
               ),
+              if (_query.isNotEmpty)
+                IconButton(
+                  tooltip: 'مسح البحث',
+                  icon: const Icon(Icons.close, size: 20),
+                  onPressed: () {
+                    _controller.clear();
+                    setState(() => _query = '');
+                  },
+                ),
             ],
           ),
         ),
@@ -136,50 +223,109 @@ class SearchScreen extends StatelessWidget {
     ),
   );
 
-  Widget _card(BuildContext context, (String, String) s) => InkWell(
-    borderRadius: BorderRadius.circular(20),
-    onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => SearchResultsScreen(specialty: s.$1)),
-      );
-    },
-    child: Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x1A0875E1),
-            blurRadius: 12,
-            offset: Offset(0, 4),
+  Widget _specialtyRow((String, String) specialty) => Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(15),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(15),
+        onTap: () => _openResults(specialty: specialty.$1),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: const Color(0xFFE0ECFA)),
           ),
-        ],
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                padding: const EdgeInsets.all(9),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEAF3FF),
+                  shape: BoxShape.circle,
+                ),
+                child: SvgPicture.asset('$_icons${specialty.$2}'),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  specialty.$1,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: _dark,
+                  ),
+                ),
+              ),
+              const Icon(Icons.chevron_left, color: Colors.blueGrey),
+            ],
+          ),
+        ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            padding: const EdgeInsets.all(13),
-            decoration: const BoxDecoration(
-              color: Color(0xFFEAF3FF),
-              shape: BoxShape.circle,
-            ),
-            child: SvgPicture.asset('$_icons${s.$2}'),
+    ),
+  );
+
+  Widget _doctorSuggestion(SearchDoctor doctor) => Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(15),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(15),
+        onTap: () => _openResults(query: doctor.name),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: const Color(0xFFE0ECFA)),
           ),
-          const SizedBox(height: 10),
-          Text(
-            s.$1,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: _dark,
-            ),
+          child: Row(
+            children: [
+              ClipOval(
+                child: Image.asset(
+                  'assets/search-results-screen/images/${doctor.image}',
+                  width: 48,
+                  height: 48,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    width: 48,
+                    height: 48,
+                    color: const Color(0xFFEAF3FF),
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.person, color: _primary, size: 27),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${doctor.title} ${doctor.name}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: _dark,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${doctor.specialty} • ${doctor.area}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.blueGrey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_left, color: Colors.blueGrey),
+            ],
           ),
-        ],
+        ),
       ),
     ),
   );

@@ -52,7 +52,7 @@ class SearchDoctor {
 
 // بيانات تجريبية (أسماء وهمية)
 // بيانات تجريبية (أسماء وهمية)
-const _doctors = [
+const searchDoctors = [
   SearchDoctor(
     title: 'دكتور',
     name: 'أحمد مصطفى',
@@ -249,28 +249,123 @@ const _doctors = [
 
 class SearchResultsScreen extends StatefulWidget {
   final String specialty;
-  const SearchResultsScreen({super.key, required this.specialty});
+  final String initialQuery;
+
+  const SearchResultsScreen({
+    super.key,
+    this.specialty = 'الكل',
+    this.initialQuery = '',
+  });
 
   @override
   State<SearchResultsScreen> createState() => _SearchResultsScreenState();
 }
 
 class _SearchResultsScreenState extends State<SearchResultsScreen> {
-  String _query = '';
+  late String _query;
+  late final TextEditingController _searchController;
   bool _sortByPrice = false;
   bool _network = true;
 
   @override
+  void initState() {
+    super.initState();
+    _query = widget.initialQuery;
+    _searchController = TextEditingController(text: widget.initialQuery);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  String _normalize(String value) {
+    var text = value
+        .toLowerCase()
+        .replaceAll(RegExp(r'[\u064B-\u065F\u0670\u0640]'), '')
+        .replaceAll(RegExp(r'[أإآٱ]'), 'ا')
+        .replaceAll('ؤ', 'و')
+        .replaceAll('ئ', 'ي')
+        .replaceAll('ى', 'ي')
+        .replaceAll('ة', 'ه')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+
+    // توحيد أشهر الصيغ المستخدمة في البحث عن تخصص الأسنان.
+    text = text
+        .replaceAll('طب الاسنان', 'اسنان')
+        .replaceAll('طبيب اسنان', 'اسنان')
+        .replaceAll('دكتور اسنان', 'اسنان')
+        .replaceAll('دكتورة اسنان', 'اسنان')
+        .replaceAll('طبيب الاسنان', 'اسنان')
+        .replaceAll('دكتور الاسنان', 'اسنان')
+        .replaceAll('دكتورة الاسنان', 'اسنان');
+
+    return text;
+  }
+
+  bool _isDentalQuery(String query) {
+    final q = _normalize(query).replaceAll(' ', '');
+    return q.contains('اسنان') ||
+        q.contains('تقويم') ||
+        q.contains('لثه') ||
+        q.contains('لثه') ||
+        q.contains('تبييض');
+  }
+
+  bool _isDentalDoctor(SearchDoctor doctor) {
+    final dentalInfo = _normalize(
+      [
+        doctor.specialty,
+        doctor.fullTitle,
+        doctor.name,
+        doctor.center,
+        doctor.clinic,
+      ].join(' '),
+    );
+    return dentalInfo.contains('اسنان') ||
+        dentalInfo.contains('تقويم') ||
+        dentalInfo.contains('لثه') ||
+        dentalInfo.contains('تبييض');
+  }
+
+  @override
   Widget build(BuildContext context) {
-    var results = _doctors.where((d) => d.specialty == widget.specialty);
-    if (_query.isNotEmpty) {
-      results = results.where(
-        (d) =>
-            d.name.contains(_query) ||
-            d.center.contains(_query) ||
-            d.area.contains(_query),
+    final query = _normalize(_query);
+    final selectedSpecialty = _normalize(widget.specialty);
+
+    final dentalQuery = query.isNotEmpty && _isDentalQuery(query);
+
+    var results = searchDoctors.where((d) {
+      // من غير نص بحث: اعرض التخصص المختار فقط، أو كل الأطباء.
+      if (query.isEmpty) {
+        return selectedSpecialty.isEmpty ||
+            selectedSpecialty == _normalize('الكل') ||
+            _normalize(d.specialty) == selectedSpecialty;
+      }
+
+      // لو البحث متعلق بالأسنان، اعرض كل الأطباء المرتبطين بالأسنان
+      // حتى لو كان الوصف مكتوبًا بصيغة "تقويم الأسنان" أو "طب الأسنان".
+      if (dentalQuery) return _isDentalDoctor(d);
+
+      final searchableText = _normalize(
+        [
+          d.title,
+          d.name,
+          d.specialty,
+          d.fullTitle,
+          d.center,
+          d.centerType,
+          d.area,
+          d.city,
+          d.clinic,
+        ].join(' '),
       );
-    }
+
+      // يدعم اختلافات الكتابة مثل: سارة / ساره، والتشكيل والهمزات.
+      return searchableText.contains(query);
+    });
     final list = results.toList();
     if (_sortByPrice) {
       list.sort((a, b) => a.price.compareTo(b.price));
@@ -291,6 +386,22 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   _chipsRow(),
+                  if (query.isNotEmpty && dentalQuery) ...[
+                    const SizedBox(height: 12),
+                    _specialtySuggestion(
+                      label: 'تخصص الأسنان',
+                      subtitle: 'عرض كل الأطباء المرتبطين بالأسنان',
+                      onTap: () {
+                        setState(() {
+                          _query = 'أسنان';
+                          _searchController.text = 'أسنان';
+                          _searchController.selection = TextSelection.collapsed(
+                            offset: _searchController.text.length,
+                          );
+                        });
+                      },
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   _networkToggle(),
                   const SizedBox(height: 14),
@@ -361,7 +472,10 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                     ),
                   ),
                   Text(
-                    'دكاترة ${widget.specialty}',
+                    widget.specialty == 'الكل' ||
+                            widget.specialty.trim().isEmpty
+                        ? 'نتائج البحث عن الدكاترة'
+                        : 'دكاترة ${widget.specialty}',
                     style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFFDCEBFF),
@@ -387,7 +501,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: TextField(
-                  onChanged: (v) => setState(() => _query = v.trim()),
+                  controller: _searchController,
+                  onChanged: (v) => setState(() => _query = v),
                   decoration: const InputDecoration(
                     hintText: 'ابحث باسم الدكتور أو المستشفى...',
                     hintStyle: TextStyle(fontSize: 13, color: Colors.grey),
@@ -400,6 +515,58 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
           ),
         ),
       ],
+    ),
+  );
+
+  Widget _specialtySuggestion({
+    required String label,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(14),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFB9D9FF)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF4FF),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.medical_services_outlined, color: _primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: _dark,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  style: const TextStyle(color: _grey, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_left, color: _primary),
+        ],
+      ),
     ),
   );
 
