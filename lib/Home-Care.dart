@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
+import 'doctor_home.dart' show DoctorHomeCareScreen;
+
 void main() {
   runApp(const HomeCareApp());
 }
@@ -132,47 +134,60 @@ class _DoctorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Card(
-      child: Row(
-        children: [
-          // الصورة (يمين)
-          _Blob(
-            path: HomeCareAssets.doctorVisit,
-            width: imgW,
-            height: imgW * 1.15,
-            mirror: false,
-            badgeIcon: Icons.home_rounded,
-            badgeAlignment: Alignment.topRight,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _Pill(Icons.local_fire_department_rounded, 'الأكثر طلباً'),
-                const SizedBox(height: 8),
-                const Text(
-                  'زيارة طبيب\nفي المنزل',
-                  style: TextStyle(fontSize: 24, height: 1.25, fontWeight: FontWeight.w800, color: _C.navy),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'احصل على استشارة طبية من أفضل الأطباء في راحتك بدون الحاجة للخروج من منزلك.',
-                  style: TextStyle(fontSize: 11.5, height: 1.5, color: _C.grey),
-                ),
-                const SizedBox(height: 12),
-                const _FeaturesRow([
-                  _Feature(Icons.shield_outlined, 'أطباء معتمدين'),
-                  _Feature(Icons.access_time, 'مواعيد مرنة'),
-                  _Feature(Icons.home_outlined, 'في جميع المناطق'),
-                ]),
-                const SizedBox(height: 14),
-                _ActionButton(text: 'اطلب زيارة الطبيب', filled: true, onTap: () {}),
-              ],
+    void open() => Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const DoctorHomeCareScreen()),
+    );
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: open,
+      child: _Card(
+        child: Row(
+          children: [
+            // الصورة (يمين)
+            _Blob(
+              path: HomeCareAssets.doctorVisit,
+              width: imgW,
+              height: imgW * 1.15,
+              mirror: false,
+              badgeIcon: Icons.home_rounded,
+              badgeAlignment: Alignment.topRight,
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _Pill(Icons.local_fire_department_rounded, 'الأكثر طلباً'),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'زيارة طبيب\nفي المنزل',
+                    style: TextStyle(fontSize: 24, height: 1.25, fontWeight: FontWeight.w800, color: _C.navy),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'احصل على استشارة طبية من أفضل الأطباء في راحتك بدون الحاجة للخروج من منزلك.',
+                    style: TextStyle(fontSize: 11.5, height: 1.5, color: _C.grey),
+                  ),
+                  const SizedBox(height: 12),
+                  const _FeaturesRow([
+                    _Feature(Icons.shield_outlined, 'أطباء معتمدين'),
+                    _Feature(Icons.access_time, 'مواعيد مرنة'),
+                    _Feature(Icons.home_outlined, 'في جميع المناطق'),
+                  ]),
+                  const SizedBox(height: 14),
+                  _ActionButton(
+                    text: 'اطلب زيارة الطبيب',
+                    filled: true,
+                    onTap: open,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
