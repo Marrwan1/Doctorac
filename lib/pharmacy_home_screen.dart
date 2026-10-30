@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../widgets/custom_bottom_nav_bar.dart';
+import 'protuct_listing_screen.dart' show ProductListingScreen;
 
 class PharmacyHomeScreen extends StatefulWidget {
   const PharmacyHomeScreen({super.key});
@@ -120,12 +121,12 @@ class _PharmacyHomeScreenState extends State<PharmacyHomeScreen> {
                           return _buildCategoryCard(category);
                         }, childCount: filteredCategories.length),
                         gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
-                              crossAxisSpacing: 10,
-                              mainAxisSpacing: 12,
-                              childAspectRatio: 0.78,
-                            ),
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.78,
+                        ),
                       ),
                     ),
                     SliverToBoxAdapter(
@@ -332,8 +333,9 @@ class _PharmacyHomeScreenState extends State<PharmacyHomeScreen> {
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('اخترتِ ${category['title']}')),
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ProductListingScreen()),
           );
         },
         borderRadius: BorderRadius.circular(16),
