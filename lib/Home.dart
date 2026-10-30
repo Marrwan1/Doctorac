@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import 'Home-Care.dart' show HomeCarePage;
+import 'pharmacy_home_screen.dart' show PharmacyHomeScreen;
+import 'search_screen.dart' show SearchScreen;
 
 void main() => runApp(const DoctoracApp());
 
@@ -36,6 +43,8 @@ class CenterData {
   final List<String> tags;
   final String logo; // مسار اللوجو
   final String photo; // مسار صورة المركز
+  final double lat; // خط العرض (نقطة تقريبية داخل المنطقة)
+  final double lng; // خط الطول
   const CenterData({
     required this.name,
     required this.specialties,
@@ -43,6 +52,8 @@ class CenterData {
     required this.tags,
     required this.logo,
     required this.photo,
+    required this.lat,
+    required this.lng,
   });
 }
 
@@ -162,6 +173,8 @@ class _HomePageState extends State<HomePage> {
       tags: ['عيادات تخصصية', 'أجهزة حديثة', 'طاقم متميز'],
       logo: 'assets/home-screen/images/clinic-logo.jpeg',
       photo: 'assets/home-screen/images/clinic_03.png',
+      lat: 30.0561,
+      lng: 31.2005,
     ),
     CenterData(
       name: 'مركز النيل التخصصي',
@@ -170,6 +183,8 @@ class _HomePageState extends State<HomePage> {
       tags: ['استقبال 24 ساعة', 'معامل تحاليل', 'أشعة متقدمة'],
       logo: 'assets/home-screen/images/l4.png',
       photo: 'assets/home-screen/images/clinic_02.png',
+      lat: 29.9627,
+      lng: 31.2597,
     ),
     CenterData(
       name: 'مركز الشروق الطبي',
@@ -178,6 +193,8 @@ class _HomePageState extends State<HomePage> {
       tags: ['أطباء استشاريين', 'حجز سريع', 'أسعار مناسبة'],
       logo: 'assets/home-screen/images/l3.png',
       photo: 'assets/home-screen/images/clinic_01.png',
+      lat: 30.0626,
+      lng: 31.346,
     ),
     CenterData(
       name: 'مركز الأمل للرعاية',
@@ -186,6 +203,8 @@ class _HomePageState extends State<HomePage> {
       tags: ['رعاية متكاملة', 'عيادات أطفال', 'خدمة منزلية'],
       logo: 'assets/home-screen/images/l2.png',
       photo: 'assets/home-screen/images/1.png',
+      lat: 30.0612,
+      lng: 31.2194,
     ),
     CenterData(
       name: 'مركز التجمع الطبي',
@@ -194,6 +213,8 @@ class _HomePageState extends State<HomePage> {
       tags: ['أحدث الأجهزة', 'غرف عمليات', 'مواقف سيارات'],
       logo: 'assets/home-screen/images/l1.png',
       photo: 'assets/home-screen/images/02.jpg',
+      lat: 30.0074,
+      lng: 31.4913,
     ),
   ];
 
@@ -224,6 +245,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   double get _ts => MediaQuery.textScalerOf(context).scale(1);
+
+  void _go(Widget page) =>
+      Navigator.push(context, MaterialPageRoute(builder: (_) => page));
 
   @override
   Widget build(BuildContext context) {
@@ -367,7 +391,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   // ---------------- Search ----------------
-  Widget _search() {
+  Widget _search() => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: () => _go(const SearchScreen()),
+    child: _searchBox(),
+  );
+
+  Widget _searchBox() {
     return Container(
       height: 54,
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -395,13 +425,13 @@ class _HomePageState extends State<HomePage> {
 
   // ---------------- Services grid ----------------
   Widget _services() {
-    final items = [
-      ('كشف عيادة', AppAssets.clinic),
-      ('صيدلية', AppAssets.pharmacy),
-      ('مكالمة دكتور', AppAssets.callDoctor),
-      ('رعاية منزلية', AppAssets.homeCare),
-      ('خدمة أو عملية', AppAssets.procedure),
-      ('أشعة و تحاليل', AppAssets.labs),
+    final items = <(String, String, VoidCallback?)>[
+      ('كشف عيادة', AppAssets.clinic, null),
+      ('صيدلية', AppAssets.pharmacy, () => _go(const PharmacyHomeScreen())),
+      ('مكالمة دكتور', AppAssets.callDoctor, null),
+      ('رعاية منزلية', AppAssets.homeCare, () => _go(const HomeCarePage())),
+      ('خدمة أو عملية', AppAssets.procedure, null),
+      ('أشعة و تحاليل', AppAssets.labs, null),
     ];
     return LayoutBuilder(builder: (context, c) {
       const gap = 12.0;
@@ -421,12 +451,19 @@ class _HomePageState extends State<HomePage> {
           crossAxisSpacing: gap,
           mainAxisExtent: cellH,
         ),
-        itemBuilder: (_, i) => _serviceCard(items[i].$1, items[i].$2, circle),
+        itemBuilder: (_, i) => _serviceCard(items[i].$1, items[i].$2, circle, items[i].$3),
       );
     });
   }
 
-  Widget _serviceCard(String title, String img, double circle) {
+  Widget _serviceCard(String title, String img, double circle, VoidCallback? onTap) =>
+      GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: _serviceCardBody(title, img, circle),
+      );
+
+  Widget _serviceCardBody(String title, String img, double circle) {
     return Container(
       decoration: cardDeco(),
       padding: const EdgeInsets.fromLTRB(6, 14, 6, 10),
@@ -678,7 +715,13 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _centerCard(CenterData d, double width, double imgSize) {
+  Widget _centerCard(CenterData d, double width, double imgSize) => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: () => _go(CenterDetailsScreen(center: d)),
+    child: _centerCardBody(d, width, imgSize),
+  );
+
+  Widget _centerCardBody(CenterData d, double width, double imgSize) {
     return Container(
       width: width,
       padding: const EdgeInsets.all(10),
@@ -872,4 +915,224 @@ class _SnapScrollPhysics extends ScrollPhysics {
 
   @override
   bool get allowImplicitScrolling => false;
+}
+
+// ====================== صفحة تفاصيل المركز (مع GPS) ======================
+class CenterDetailsScreen extends StatelessWidget {
+  final CenterData center;
+  const CenterDetailsScreen({super.key, required this.center});
+
+  LatLng get _point => LatLng(center.lat, center.lng);
+
+  // يفتح جوجل ماب على نقطة المركز
+  Future<void> _openGoogleMaps(BuildContext context) async {
+    final uri = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=${center.lat},${center.lng}',
+    );
+    var opened = false;
+    try {
+      opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {}
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر فتح خرائط جوجل')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: C.bg,
+      body: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
+          children: [
+            _topBar(context),
+            const SizedBox(height: 14),
+            _photo(),
+            const SizedBox(height: 16),
+            _infoCard(),
+            const SizedBox(height: 20),
+            const Text(
+              'الموقع',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: C.text),
+            ),
+            const SizedBox(height: 12),
+            _gpsCard(context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _topBar(BuildContext context) => Row(
+    children: [
+      GestureDetector(
+        onTap: () => Navigator.maybePop(context),
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: const BoxDecoration(color: C.circle, shape: BoxShape.circle),
+          child: const Icon(Icons.arrow_back_rounded, color: C.primary, size: 24),
+        ),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Text(
+          center.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: C.text),
+        ),
+      ),
+    ],
+  );
+
+  Widget _photo() => Container(
+    decoration: cardDeco(r: 22),
+    padding: const EdgeInsets.all(6),
+    child: AppImage(center.photo, width: double.infinity, height: 200, radius: 18),
+  );
+
+  Widget _infoCard() => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(16),
+    decoration: cardDeco(r: 20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 62,
+              height: 62,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+                border: Border.all(color: const Color(0xFFE3E9F2)),
+              ),
+              child: ClipOval(
+                child: AppImage(center.logo, width: 62, height: 62, fit: BoxFit.contain),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                center.name,
+                style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: C.text),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _infoRow(Icons.medical_services_outlined, center.specialties),
+        const SizedBox(height: 8),
+        _infoRow(Icons.apartment_rounded, center.area),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: center.tags
+              .map(
+                (t) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAF2FD),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(t, style: const TextStyle(fontSize: 12, color: C.primary)),
+            ),
+          )
+              .toList(),
+        ),
+      ],
+    ),
+  );
+
+  Widget _infoRow(IconData icon, String text) => Row(
+    children: [
+      Icon(icon, color: C.primary, size: 18),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(text, style: const TextStyle(fontSize: 14, color: C.grey)),
+      ),
+    ],
+  );
+
+  // ---------------- GPS ----------------
+  Widget _gpsCard(BuildContext context) => Container(
+    decoration: cardDeco(r: 20),
+    clipBehavior: Clip.antiAlias,
+    child: Column(
+      children: [
+        SizedBox(
+          height: 190,
+          child: Stack(
+            children: [
+              FlutterMap(
+                options: MapOptions(
+                  initialCenter: _point,
+                  initialZoom: 15,
+                  interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.doctorac.app',
+                  ),
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: _point,
+                        width: 48,
+                        height: 48,
+                        child: const Icon(Icons.location_on, size: 44, color: Color(0xFFE11D48)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              // طبقة شفافة: الضغط على الخريطة يفتح جوجل ماب
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _openGoogleMaps(context),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _infoRow(Icons.location_on_outlined, center.area),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () => _openGoogleMaps(context),
+                  icon: const Icon(Icons.map_outlined, size: 20),
+                  label: const Text(
+                    'افتح في خرائط جوجل',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: C.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }
