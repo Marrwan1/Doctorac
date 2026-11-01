@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import 'services/search_api.dart'; // API
 import 'widgets/custom_bottom_nav_bar.dart';
 
 const _img = 'assets/search-results-screen/images/';
@@ -266,12 +267,23 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   late final TextEditingController _searchController;
   bool _sortByPrice = false;
   bool _network = true;
+  List<SearchDoctor> _all = searchDoctors; // API: البيانات المحلية كبديل
+  bool _loading = true; // API
 
   @override
   void initState() {
     super.initState();
     _query = widget.initialQuery;
     _searchController = TextEditingController(text: widget.initialQuery);
+    // API: تحميل الدكاترة من MockAPI
+    SearchApi.fetchDoctors().then((d) {
+      if (mounted) {
+        setState(() {
+          _all = d;
+          _loading = false;
+        });
+      }
+    });
   }
 
   @override
@@ -337,7 +349,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
 
     final dentalQuery = query.isNotEmpty && _isDentalQuery(query);
 
-    var results = searchDoctors.where((d) {
+    var results = _all.where((d) {
+      // API (كان searchDoctors)
       // من غير نص بحث: اعرض التخصص المختار فقط، أو كل الأطباء.
       if (query.isEmpty) {
         return selectedSpecialty.isEmpty ||
@@ -385,6 +398,11 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
+                  if (_loading) // API: شريط التحميل
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 10),
+                      child: LinearProgressIndicator(minHeight: 3),
+                    ),
                   _chipsRow(),
                   if (query.isNotEmpty && dentalQuery) ...[
                     const SizedBox(height: 12),

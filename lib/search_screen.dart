@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'search_results_screen.dart';
+import 'services/search_api.dart'; // API
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -16,7 +17,8 @@ class _SearchScreenState extends State<SearchScreen> {
   static const _bg = Color(0xFFF4F9FF);
   static const _icons = 'assets/search-screen/icons/';
 
-  static const _specialties = [
+  static const _defaultSpecialties = [
+    // API (كان _specialties)
     ('جلدية', 'dermatology.svg'),
     ('أسنان', 'tooth.svg'),
     ('نفسي', 'psychology.svg'),
@@ -31,6 +33,21 @@ class _SearchScreenState extends State<SearchScreen> {
 
   final TextEditingController _controller = TextEditingController();
   String _query = '';
+
+  // API: البيانات بتتحمّل من الـ API، والمحلية بديل لو فشل
+  List<(String, String)> _specialties = _defaultSpecialties;
+  List<SearchDoctor> _allDoctors = searchDoctors;
+
+  @override
+  void initState() {
+    super.initState();
+    SearchApi.fetchSpecialties(_defaultSpecialties).then((s) {
+      if (mounted) setState(() => _specialties = s);
+    });
+    SearchApi.fetchDoctors().then((d) {
+      if (mounted) setState(() => _allDoctors = d);
+    });
+  }
 
   String _normalizeArabic(String value) {
     return value
@@ -49,7 +66,8 @@ class _SearchScreenState extends State<SearchScreen> {
   List<SearchDoctor> get _matchingDoctors {
     if (_normalizedQuery.isEmpty) return [];
 
-    return searchDoctors.where((doctor) {
+    return _allDoctors.where((doctor) {
+      // API (كان searchDoctors)
       // البحث هنا عن الدكاترة فقط، وليس عن التخصصات.
       // تضمين اللقب يجعل البحث بكلمة "دكتور" أو "دكتورة" يعرض النتائج.
       final searchable = _normalizeArabic(
