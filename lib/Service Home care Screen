@@ -1,0 +1,750 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark,
+  ));
+  runApp(const DoctoracApp());
+}
+
+// ── Icons: Material icons stand in for the SVG assets (no packages needed) ──
+const _icons = <String, IconData>{
+  'arrow-left': Icons.arrow_back,
+  'note-text': Icons.assignment_outlined,
+  'user': Icons.person_outline,
+  'phone': Icons.phone_outlined,
+  'medical-clipboard': Icons.medical_information_outlined,
+  'location-1': Icons.location_on_outlined,
+  'calendar-check': Icons.event_available_outlined,
+  'chevron-down': Icons.keyboard_arrow_down,
+};
+
+class SvgPicture {
+  static Widget asset(String path,
+      {double? width, double? height, Color? color}) {
+    final name = path.split('/').last.replaceAll('.svg', '');
+    return Icon(_icons[name],
+        size: width ?? height, color: color, textDirection: TextDirection.ltr);
+  }
+}
+
+final _bannerBytes = base64Decode(_bannerB64.replaceAll(RegExp(r'\s'), ''));
+
+const _bannerB64 = r'''
+/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYn
+KSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo
+KCgoKCgoKCj/wAARCAGQAZADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUF
+BAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVW
+V1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi
+4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAEC
+AxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVm
+Z2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq
+8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDhKctNpR1r9EPzwfSim04VQhR1p4pg608UAOFPFRipBQIetTLUK1KtAiVelSLUa1IKBkgq
+VaiWpRSYEq1KtRLUq0DJFqVaiWpVpDJFqRajFSrUjHjpT1popwpDHinCminigBaKDSUAOopM0CgQUUtFMAooopAFX9DtvtOoxgjK
+p87fh0/WqFdT4YtvLs3mYfNKePoP8mscRPkgzWhDnmjX60oFLinAV5J6lhAKczCNCzdBSgVQvZvMfy1PyqfzNCXM7A3ZXIJXMjMz
+dTS245pMcVJbjmtXoTEnUVIopAOakUVhJm8UOQVMopqipFFYyZvFDlFPAoUU8CueTOiKJYRzTL8fu6lgFMvx+6rJs2ijFYcitWAf
+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
+2Q==
+''';
+
+// ───────────────────────── Phone chrome (status bar + nav bar) ─────────────────────────
+// Set to false when running on a real phone (it already has its own bars).
+const bool kShowMockBars = true;
+
+class _StatusBar extends StatelessWidget {
+  const _StatusBar();
+
+  @override
+  Widget build(BuildContext context) {
+    const ink = Color(0xFF1D2433);
+    return SizedBox(
+      height: 36,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 4, 22, 0),
+        child: Directionality(
+          textDirection: TextDirection.ltr,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('9:41',
+                  style: TextStyle(
+                      fontSize: 12.5, fontWeight: FontWeight.w600, color: ink)),
+              Row(
+                children: [
+                  const Icon(Icons.signal_cellular_alt, size: 16, color: ink),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.wifi, size: 15, color: ink),
+                  const SizedBox(width: 5),
+                  Container(
+                    width: 22,
+                    height: 11,
+                    decoration: BoxDecoration(
+                        color: ink, borderRadius: BorderRadius.circular(3)),
+                  ),
+                  Container(
+                    width: 2,
+                    height: 4,
+                    margin: const EdgeInsets.only(left: 1),
+                    decoration: BoxDecoration(
+                        color: ink, borderRadius: BorderRadius.circular(1)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavBar extends StatelessWidget {
+  final Color? bg;
+  const _NavBar({this.bg});
+
+  @override
+  Widget build(BuildContext context) {
+    const c = Color(0xFF4A4F5C);
+    Widget bar() => Container(width: 1.6, height: 14, color: c);
+    return Container(
+      color: bg,
+      height: 44,
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(children: [
+              bar(),
+              const SizedBox(width: 4.5),
+              bar(),
+              const SizedBox(width: 4.5),
+              bar()
+            ]),
+            const SizedBox(width: 74),
+            Container(
+              width: 15,
+              height: 15,
+              decoration: BoxDecoration(
+                  border: Border.all(color: c, width: 1.5),
+                  borderRadius: BorderRadius.circular(5)),
+            ),
+            const SizedBox(width: 74),
+            const Icon(Icons.chevron_left, size: 22, color: c),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ───────────────────────── Colors ─────────────────────────
+class C {
+  static const navy = Color(0xFF14285A);
+  static const ink = Color(0xFF1C2F5C);
+  static const mute = Color(0xFFA3B0C4);
+  static const blue = Color(0xFF1A6FE8);
+  static const border = Color(0xFFD6E1F0);
+  static const icon = Color(0xFF2C4A82);
+  static const error = Color(0xFFD93A4A);
+}
+
+// ───────────────────────── App ─────────────────────────
+class DoctoracApp extends StatelessWidget {
+  const DoctoracApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Doctorac',
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: C.blue),
+      ),
+      // The whole app is right-to-left (Arabic).
+      builder: (context, child) =>
+          Directionality(textDirection: TextDirection.rtl, child: child!),
+      home: const HomeCareScreen(),
+    );
+  }
+}
+
+// ───────────────────────── Data ─────────────────────────
+class Option {
+  final String label;
+  final IconData? icon; // replace with your own SVGs if you have them
+  const Option(this.label, [this.icon]);
+}
+
+const services = <Option>[
+  Option('خدمات إسعاف طوارئ', Icons.emergency_outlined),
+  Option('خدمات طب الأسنان المنزلية', Icons.health_and_safety_outlined),
+  Option('زيارة طبيب منزلية', Icons.medical_services_outlined),
+  Option('خدمات تحاليل منزلية', Icons.science_outlined),
+  Option('إجراءات العلاج الطبيعي المنزلية', Icons.accessibility_new),
+  Option('خدمات الأشعة المنزلية', Icons.document_scanner_outlined),
+  Option('الرعاية والخدمات التمريضية المنزلية\nإقامة بالمنزل',
+      Icons.volunteer_activism_outlined),
+  Option('خدمات النقل الطبي الإسعافي\nللحالات غير الطارئة',
+      Icons.airline_seat_flat_outlined),
+  Option('الرعاية والخدمات التمريضية المنزلية\nالسريعة',
+      Icons.volunteer_activism_outlined),
+];
+
+const areas = <Option>[
+  Option('القاهرة'),
+  Option('الجيزة'),
+  Option('الإسكندرية'),
+  Option('المنصورة'),
+  Option('طنطا'),
+];
+
+const providers = <Option>[
+  Option('أي مقدم خدمة متاح'),
+  Option('فريق Doctorac الطبي'),
+  Option('ممرض/ة معتمد'),
+];
+
+// ───────────────────────── Screen ─────────────────────────
+class HomeCareScreen extends StatefulWidget {
+  const HomeCareScreen({super.key});
+
+  @override
+  State<HomeCareScreen> createState() => _HomeCareScreenState();
+}
+
+class _HomeCareScreenState extends State<HomeCareScreen> {
+  final _name = TextEditingController();
+  final _phone = TextEditingController();
+  int? _service, _area, _provider;
+  bool _submitted = false;
+  String? _open; // which picker sheet is open: 'svc' | 'area' | 'prov'
+
+  // The whole screen is designed at 376 x 840 and scaled to fit any phone,
+  // so everything always shows on ONE page, exactly like the design.
+  static const double _w = 376;
+  static const double _h = 840;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    setState(() => _submitted = true);
+    final ok = _name.text.trim().isNotEmpty &&
+        _phone.text.trim().isNotEmpty &&
+        _service != null &&
+        _area != null &&
+        _provider != null;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: C.navy,
+      content: Text(ok ? 'تم إرسال طلبك بنجاح' : 'أكمل البيانات المطلوبة',
+          textAlign: TextAlign.center),
+    ));
+    // TODO: send the request to your backend when `ok` is true.
+  }
+
+  Widget _sheet() {
+    final key = _open!;
+    final title = key == 'svc'
+        ? 'اختر الخدمة'
+        : key == 'area'
+            ? 'اختر المنطقة'
+            : 'اختر مقدم الخدمة';
+    final opts = key == 'svc' ? services : (key == 'area' ? areas : providers);
+    final sel = key == 'svc' ? _service : (key == 'area' ? _area : _provider);
+    return PickerSheet(
+      title: title,
+      options: opts,
+      selected: sel,
+      onClose: () => setState(() => _open = null),
+      onSelect: (i) => setState(() {
+        if (key == 'svc') {
+          _service = i;
+        } else if (key == 'area') {
+          _area = i;
+        } else {
+          _provider = i;
+        }
+        _open = null;
+      }),
+    );
+  }
+
+  Widget _design() {
+    const bars = kShowMockBars;
+    return SizedBox(
+      width: _w,
+      height: bars ? _h : _h - 80,
+      child: Stack(
+        children: [
+          // soft blue wave at the bottom
+          const Positioned(
+            left: -75,
+            right: -75,
+            bottom: -40,
+            height: 150,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Color(0xB3E6F0FB),
+                borderRadius:
+                    BorderRadius.vertical(top: Radius.elliptical(263, 75)),
+              ),
+            ),
+          ),
+          Column(
+            children: [
+              if (bars) const _StatusBar(),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: [
+                      const _TopBar(),
+                      const _Banner(),
+                      const SizedBox(height: 15),
+                      _FormCard(
+                        children: [
+                          FieldShell(
+                            icon: 'user',
+                            label: 'الاسم الكامل',
+                            error: _submitted && _name.text.trim().isEmpty,
+                            child: _TextInput(
+                                controller: _name,
+                                hint: 'ادخل اسمك بالكامل',
+                                onChanged: (_) => setState(() {})),
+                          ),
+                          FieldShell(
+                            icon: 'phone',
+                            label: 'رقم الموبايل',
+                            error: _submitted && _phone.text.trim().isEmpty,
+                            child: _TextInput(
+                                controller: _phone,
+                                hint: 'ادخل رقم الهاتف',
+                                keyboard: TextInputType.phone,
+                                onChanged: (_) => setState(() {})),
+                          ),
+                          FieldShell(
+                            icon: 'medical-clipboard',
+                            label: 'الخدمة المطلوبة',
+                            error: _submitted && _service == null,
+                            onTap: () => setState(() => _open = 'svc'),
+                            child: _Value(
+                                text: _service == null
+                                    ? 'اختر الخدمة'
+                                    : services[_service!]
+                                        .label
+                                        .replaceAll('\n', ' '),
+                                filled: _service != null),
+                          ),
+                          FieldShell(
+                            icon: 'location-1',
+                            label: 'المنطقة',
+                            error: _submitted && _area == null,
+                            onTap: () => setState(() => _open = 'area'),
+                            child: _Value(
+                                text: _area == null
+                                    ? 'اختر المنطقة'
+                                    : areas[_area!].label,
+                                filled: _area != null),
+                          ),
+                          FieldShell(
+                            icon: 'user',
+                            label: 'مقدم الخدمة',
+                            error: _submitted && _provider == null,
+                            onTap: () => setState(() => _open = 'prov'),
+                            child: _Value(
+                                text: _provider == null
+                                    ? 'اختر مقدم الخدمة'
+                                    : providers[_provider!].label,
+                                filled: _provider != null),
+                          ),
+                          _ConfirmButton(onPressed: _submit),
+                        ],
+                      ),
+                      const _Footer(),
+                    ],
+                  ),
+                ),
+              ),
+              if (bars) const SizedBox(height: 44),
+            ],
+          ),
+          if (_open != null) ...[
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => setState(() => _open = null),
+                child: const ColoredBox(color: Color(0x8C2D3A50)),
+              ),
+            ),
+            Positioned(left: 0, right: 0, bottom: 0, top: 188, child: _sheet()),
+          ],
+          if (bars)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child:
+                  _NavBar(bg: _open != null ? const Color(0xFFF0F4FA) : null),
+            ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF6F9FE), Color(0xFFF3F8FE), Color(0xFFEAF2FC)],
+          ),
+        ),
+        child: SafeArea(
+          top: !kShowMockBars,
+          bottom: !kShowMockBars,
+          child: Center(
+            child: FittedBox(fit: BoxFit.contain, child: _design()),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ───────────────────────── Top bar ─────────────────────────
+class _TopBar extends StatelessWidget {
+  const _TopBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 50,
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.maybePop(context),
+            child: SvgPicture.asset('assets/icons/arrow-left.svg',
+                width: 20, height: 20, color: C.blue),
+          ),
+          const SizedBox(width: 10),
+          Text('احجز خدمة رعاية منزلية',
+              style: TextStyle(
+                  fontSize: 17, fontWeight: FontWeight.w800, color: C.navy)),
+        ],
+      ),
+    );
+  }
+}
+
+// ───────────────────────── Banner ─────────────────────────
+class _Banner extends StatelessWidget {
+  const _Banner();
+
+  @override
+  Widget build(BuildContext context) {
+    const base = Color(0xFF0368BA);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: SizedBox(
+        height: 150,
+        width: double.infinity,
+        child: Stack(
+          children: [
+            const Positioned.fill(child: ColoredBox(color: base)),
+            Positioned(
+              right: 3,
+              top: -49,
+              width: 270,
+              height: 270,
+              child: Image.memory(_bannerBytes, fit: BoxFit.cover),
+            ),
+            // soft fade so the left side blends with the photo
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 140,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [base, base.withOpacity(0)],
+                    stops: const [0.45, 1],
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: -34,
+              bottom: -56,
+              child: Container(
+                width: 118,
+                height: 118,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border:
+                      Border.all(color: Colors.white.withOpacity(.3), width: 7),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 22,
+              top: 15,
+              child: Text('Doctorac',
+                  textDirection: TextDirection.ltr,
+                  style: TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white)),
+            ),
+            Positioned(
+              left: 22,
+              top: 54,
+              // LTR box so both lines are left-aligned like the design
+              child: Directionality(
+                textDirection: TextDirection.ltr,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('احجز رعاية منزلية موثوقة',
+                        style: TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w700,
+                            height: 1.3,
+                            color: Colors.white)),
+                    const SizedBox(height: 4),
+                    Text('رعاية صحية آمنة ومريحة في منزلك',
+                        style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withOpacity(.92))),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ───────────────────────── Form card ─────────────────────────
+class _FormCard extends StatelessWidget {
+  final List<Widget> children;
+  const _FormCard({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(11, 17, 11, 15),
+      decoration: BoxDecoration(
+        color: Colors.white.
