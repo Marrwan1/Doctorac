@@ -8,13 +8,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'Home-Care.dart' show HomeCarePage;
 import 'pharmacy_home_screen.dart' show PharmacyHomeScreen;
 import 'search_screen.dart' show SearchScreen;
+import 'labtests_radiology_Screen.dart' show LabTestsRadiologyScreen;
 
 void main() => runApp(const DoctoracApp());
 
 class AppAssets {
-
   static const logo = 'assets/logo/logo_text1.png';
-
 
   static const clinic = 'assets/home-screen/images/H.svg'; // كشف عيادة
   static const pharmacy = 'assets/home-screen/images/pharmacy.png'; // صيدلية
@@ -23,9 +22,7 @@ class AppAssets {
   static const procedure = 'assets/home-screen/images/medical_procedures.png'; // خدمة أو عملية
   static const labs = 'assets/home-screen/images/labs_and_radiology.png'; // أشعة و تحاليل
 
-
   static const bannerDoctor = 'assets/home-screen/images/Booking_a_clinic_appointment.jpeg';
-
 
   static const doctors = [
     'assets/home-screen/images/doctor_03.png',
@@ -34,7 +31,6 @@ class AppAssets {
     'assets/home-screen/images/doctor_06.jpg',
   ];
 }
-
 
 class CenterData {
   final String name;
@@ -135,7 +131,8 @@ class DoctoracApp extends StatelessWidget {
         final scaler = mq.textScaler.clamp(minScaleFactor: 1.0, maxScaleFactor: 1.15);
         return MediaQuery(
           data: mq.copyWith(textScaler: scaler),
-          child: Directionality(textDirection: TextDirection.rtl, child: child!),
+          child: Directionality(
+              textDirection: TextDirection.rtl, child: child ?? const SizedBox()),
         );
       },
       theme: ThemeData(
@@ -152,7 +149,10 @@ BoxDecoration cardDeco({double r = 20}) => BoxDecoration(
   color: Colors.white,
   borderRadius: BorderRadius.circular(r),
   boxShadow: [
-    BoxShadow(color: const Color(0xFF1E73E8).withOpacity(.07), blurRadius: 16, offset: const Offset(0, 5)),
+    BoxShadow(
+        color: const Color(0xFF1E73E8).withValues(alpha: .07),
+        blurRadius: 16,
+        offset: const Offset(0, 5)),
   ],
 );
 
@@ -251,29 +251,33 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFE6F0FD), Color(0xFFF4F8FE)],
+    // الصفحة بتفرض الاتجاه (عربي RTL) بنفسها، فتظهر صح مهما كان التطبيق اللي شغّلها
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFE6F0FD), Color(0xFFF4F8FE)],
+            ),
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: IndexedStack(
+              index: tab,
+              children: [
+                _homeTab(),
+                _placeholder(Icons.calendar_month_outlined, 'مواعيدي'),
+                _placeholder(Icons.account_balance_wallet_outlined, 'محفظتي'),
+                _placeholder(Icons.account_circle_outlined, 'حسابي'),
+              ],
+            ),
           ),
         ),
-        child: SafeArea(
-          bottom: false,
-          child: IndexedStack(
-            index: tab,
-            children: [
-              _homeTab(),
-              _placeholder(Icons.calendar_month_outlined, 'مواعيدي'),
-              _placeholder(Icons.account_balance_wallet_outlined, 'محفظتي'),
-              _placeholder(Icons.account_circle_outlined, 'حسابي'),
-            ],
-          ),
-        ),
+        bottomNavigationBar: _bottomNav(),
       ),
-      bottomNavigationBar: _bottomNav(),
     );
   }
 
@@ -314,7 +318,8 @@ class _HomePageState extends State<HomePage> {
             child: Icon(icon, color: C.primary, size: 38),
           ),
           const SizedBox(height: 14),
-          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: C.text)),
+          Text(title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: C.text)),
           const SizedBox(height: 4),
           const Text('قريباً', style: TextStyle(fontSize: 13, color: C.grey)),
         ],
@@ -357,14 +362,16 @@ class _HomePageState extends State<HomePage> {
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          const Icon(Icons.notifications_none_rounded, color: C.primary, size: 28),
+                          const Icon(Icons.notifications_none_rounded,
+                              color: C.primary, size: 28),
                           Positioned(
                             right: 3,
                             top: 11,
                             child: Container(
                               width: 9,
                               height: 9,
-                              decoration: const BoxDecoration(color: C.primary, shape: BoxShape.circle),
+                              decoration: const BoxDecoration(
+                                  color: C.primary, shape: BoxShape.circle),
                             ),
                           ),
                         ],
@@ -374,7 +381,8 @@ class _HomePageState extends State<HomePage> {
                     Container(
                       width: 48,
                       height: 48,
-                      decoration: const BoxDecoration(color: C.circle, shape: BoxShape.circle),
+                      decoration:
+                      const BoxDecoration(color: C.circle, shape: BoxShape.circle),
                       child: const Icon(Icons.person, color: C.primary, size: 24),
                     ),
                   ],
@@ -384,7 +392,9 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 2),
           const Text('رعايتك الصحية .. أسهل',
-              maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: C.grey, fontSize: 13)),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: C.grey, fontSize: 13)),
         ],
       ),
     );
@@ -415,7 +425,11 @@ class _HomePageState extends State<HomePage> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: C.grey, fontSize: 13)),
             ),
-            Container(width: 1, height: 24, color: const Color(0xFFE3E9F2), margin: const EdgeInsets.symmetric(horizontal: 12)),
+            Container(
+                width: 1,
+                height: 24,
+                color: const Color(0xFFE3E9F2),
+                margin: const EdgeInsets.symmetric(horizontal: 12)),
             const Icon(Icons.tune_rounded, color: C.primary, size: 24),
           ],
         ),
@@ -426,12 +440,12 @@ class _HomePageState extends State<HomePage> {
   // ---------------- Services grid ----------------
   Widget _services() {
     final items = <(String, String, VoidCallback?)>[
-      ('كشف عيادة', AppAssets.clinic, null),
+      ('كشف عيادة', AppAssets.clinic, () => _go(const SearchScreen())),
       ('صيدلية', AppAssets.pharmacy, () => _go(const PharmacyHomeScreen())),
       ('مكالمة دكتور', AppAssets.callDoctor, null),
       ('رعاية منزلية', AppAssets.homeCare, () => _go(const HomeCarePage())),
       ('خدمة أو عملية', AppAssets.procedure, null),
-      ('أشعة و تحاليل', AppAssets.labs, null),
+      ('أشعة و تحاليل', AppAssets.labs, () => _go(const LabTestsRadiologyScreen())),
     ];
     return LayoutBuilder(builder: (context, c) {
       const gap = 12.0;
@@ -451,7 +465,8 @@ class _HomePageState extends State<HomePage> {
           crossAxisSpacing: gap,
           mainAxisExtent: cellH,
         ),
-        itemBuilder: (_, i) => _serviceCard(items[i].$1, items[i].$2, circle, items[i].$3),
+        itemBuilder: (_, i) =>
+            _serviceCard(items[i].$1, items[i].$2, circle, items[i].$3),
       );
     });
   }
@@ -480,12 +495,14 @@ class _HomePageState extends State<HomePage> {
             fit: BoxFit.scaleDown,
             child: Text(title,
                 maxLines: 1,
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: C.text)),
+                style: const TextStyle(
+                    fontWeight: FontWeight.w700, fontSize: 14, color: C.text)),
           ),
           Container(
             width: 28,
             height: 28,
-            decoration: const BoxDecoration(color: Color(0xFFE6F0FD), shape: BoxShape.circle),
+            decoration:
+            const BoxDecoration(color: Color(0xFFE6F0FD), shape: BoxShape.circle),
             child: const Icon(Icons.arrow_forward_rounded, color: C.primary, size: 16),
           ),
         ],
@@ -500,7 +517,8 @@ class _HomePageState extends State<HomePage> {
         height: 175,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(22),
-          gradient: const LinearGradient(colors: [Color(0xFFE3EEFC), Color(0xFFF1F6FE)]),
+          gradient: const LinearGradient(
+              colors: [Color(0xFFE3EEFC), Color(0xFFF1F6FE)]),
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(
@@ -526,8 +544,12 @@ class _HomePageState extends State<HomePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('احجز كشف عيادة',
-                            style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800, color: C.navy)),
-                        const Text('في لا خطوات بسيطة', style: TextStyle(color: C.grey, fontSize: 13)),
+                            style: TextStyle(
+                                fontSize: 21,
+                                fontWeight: FontWeight.w800,
+                                color: C.navy)),
+                        const Text('في لا خطوات بسيطة',
+                            style: TextStyle(color: C.grey, fontSize: 13)),
                         const SizedBox(height: 10),
                         Row(
                           mainAxisSize: MainAxisSize.min,
@@ -543,14 +565,20 @@ class _HomePageState extends State<HomePage> {
                         Container(
                           height: 38,
                           padding: const EdgeInsets.symmetric(horizontal: 22),
-                          decoration: BoxDecoration(color: C.primary, borderRadius: BorderRadius.circular(20)),
+                          decoration: BoxDecoration(
+                              color: C.primary,
+                              borderRadius: BorderRadius.circular(20)),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
+                              Icon(Icons.arrow_forward_rounded,
+                                  color: Colors.white, size: 16),
                               SizedBox(width: 10),
                               Text('ابدأ الآن',
-                                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600)),
                             ],
                           ),
                         ),
@@ -575,7 +603,10 @@ class _HomePageState extends State<HomePage> {
   );
 
   Widget _vDivider() => Container(
-      width: 1, height: 28, margin: const EdgeInsets.symmetric(horizontal: 9), color: const Color(0xFFCFDDF2));
+      width: 1,
+      height: 28,
+      margin: const EdgeInsets.symmetric(horizontal: 9),
+      color: const Color(0xFFCFDDF2));
 
   // ---------------- Section title ----------------
   Widget _sectionTitle(String t) {
@@ -585,7 +616,8 @@ class _HomePageState extends State<HomePage> {
           child: Text(t,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: C.text)),
+              style: const TextStyle(
+                  fontSize: 18, fontWeight: FontWeight.w800, color: C.text)),
         ),
         const Text('عرض الكل', style: TextStyle(color: C.primary, fontSize: 14)),
         const SizedBox(width: 6),
@@ -621,19 +653,26 @@ class _HomePageState extends State<HomePage> {
                 // مكان صورة الدكتور
                 Stack(
                   children: [
-                    AppImage(AppAssets.doctors[i], width: double.infinity, height: 92, radius: 12),
+                    AppImage(AppAssets.doctors[i],
+                        width: double.infinity, height: 92, radius: 12),
                     Positioned(
                       top: 6,
                       left: 6,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(9)),
+                        padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(9)),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(d.$4, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                            Text(d.$4,
+                                style: const TextStyle(
+                                    fontSize: 11, fontWeight: FontWeight.w700)),
                             const SizedBox(width: 3),
-                            const Icon(Icons.star_rounded, color: Color(0xFFF5A623), size: 14),
+                            const Icon(Icons.star_rounded,
+                                color: Color(0xFFF5A623), size: 14),
                           ],
                         ),
                       ),
@@ -641,7 +680,8 @@ class _HomePageState extends State<HomePage> {
                     const Positioned(
                       top: 6,
                       right: 6,
-                      child: Icon(Icons.favorite_border_rounded, color: Colors.white, size: 20),
+                      child: Icon(Icons.favorite_border_rounded,
+                          color: Colors.white, size: 20),
                     ),
                   ],
                 ),
@@ -649,7 +689,8 @@ class _HomePageState extends State<HomePage> {
                 Text(d.$1,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: C.text)),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 14, color: C.text)),
                 const SizedBox(height: 2),
                 Text(d.$2,
                     maxLines: 1,
@@ -671,16 +712,26 @@ class _HomePageState extends State<HomePage> {
                 const Spacer(),
                 Row(
                   children: [
-                    Text('${d.$5} ج.م', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                    Text('${d.$5} ج.م',
+                        style:
+                        const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                     const Spacer(),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                      decoration: BoxDecoration(color: const Color(0xFFE6F0FD), borderRadius: BorderRadius.circular(14)),
+                      padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                          color: const Color(0xFFE6F0FD),
+                          borderRadius: BorderRadius.circular(14)),
                       child: const Row(
                         children: [
-                          Icon(Icons.calendar_month_outlined, color: C.primary, size: 15),
+                          Icon(Icons.calendar_month_outlined,
+                              color: C.primary, size: 15),
                           SizedBox(width: 5),
-                          Text('احجز', style: TextStyle(color: C.primary, fontSize: 12, fontWeight: FontWeight.w700)),
+                          Text('احجز',
+                              style: TextStyle(
+                                  color: C.primary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700)),
                         ],
                       ),
                     ),
@@ -705,7 +756,8 @@ class _HomePageState extends State<HomePage> {
       child: ListView.separated(
         controller: _centersCtrl,
         physics: _SnapScrollPhysics(
-            itemExtent: _centerCardW + _centerGap, parent: const ClampingScrollPhysics()),
+            itemExtent: _centerCardW + _centerGap,
+            parent: const ClampingScrollPhysics()),
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.zero,
         itemCount: _centersCount,
@@ -736,7 +788,8 @@ class _HomePageState extends State<HomePage> {
               color: Colors.white,
               border: Border.all(color: const Color(0xFFE3E9F2)),
             ),
-            child: ClipOval(child: AppImage(d.logo, width: 62, height: 62, fit: BoxFit.contain)),
+            child: ClipOval(
+                child: AppImage(d.logo, width: 62, height: 62, fit: BoxFit.contain)),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -750,10 +803,12 @@ class _HomePageState extends State<HomePage> {
                     Text(d.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: C.text)),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w800, color: C.text)),
                     const SizedBox(height: 4),
                     Row(children: [
-                      const Icon(Icons.medical_services_outlined, color: C.primary, size: 13),
+                      const Icon(Icons.medical_services_outlined,
+                          color: C.primary, size: 13),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(d.specialties,
@@ -779,10 +834,14 @@ class _HomePageState extends State<HomePage> {
                       runSpacing: 4,
                       children: d.tags
                           .map((t) => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 3),
                         decoration: BoxDecoration(
-                            color: const Color(0xFFEAF2FD), borderRadius: BorderRadius.circular(8)),
-                        child: Text(t, style: const TextStyle(fontSize: 9, color: C.primary)),
+                            color: const Color(0xFFEAF2FD),
+                            borderRadius: BorderRadius.circular(8)),
+                        child: Text(t,
+                            style: const TextStyle(
+                                fontSize: 9, color: C.primary)),
                       ))
                           .toList(),
                     ),
@@ -798,7 +857,8 @@ class _HomePageState extends State<HomePage> {
           Container(
             width: 28,
             height: 28,
-            decoration: const BoxDecoration(color: Color(0xFFE6F0FD), shape: BoxShape.circle),
+            decoration:
+            const BoxDecoration(color: Color(0xFFE6F0FD), shape: BoxShape.circle),
             child: const Icon(Icons.arrow_back_rounded, color: C.primary, size: 16),
           ),
         ],
@@ -841,7 +901,9 @@ class _HomePageState extends State<HomePage> {
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-        boxShadow: [BoxShadow(color: Color(0x14000000), blurRadius: 18, offset: Offset(0, -4))],
+        boxShadow: [
+          BoxShadow(color: Color(0x14000000), blurRadius: 18, offset: Offset(0, -4))
+        ],
       ),
       child: Row(
         children: List.generate(items.length, (i) {
@@ -868,7 +930,8 @@ class _HomePageState extends State<HomePage> {
                     width: 34,
                     height: 3,
                     decoration: BoxDecoration(
-                        color: sel ? C.primary : Colors.transparent, borderRadius: BorderRadius.circular(2)),
+                        color: sel ? C.primary : Colors.transparent,
+                        borderRadius: BorderRadius.circular(2)),
                   ),
                 ],
               ),
@@ -908,7 +971,8 @@ class _SnapScrollPhysics extends ScrollPhysics {
     final tolerance = toleranceFor(position);
     final target = _target(position, tolerance, velocity);
     if (target != position.pixels) {
-      return ScrollSpringSimulation(spring, position.pixels, target, velocity, tolerance: tolerance);
+      return ScrollSpringSimulation(spring, position.pixels, target, velocity,
+          tolerance: tolerance);
     }
     return null;
   }
@@ -942,26 +1006,30 @@ class CenterDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: C.bg,
-      body: SafeArea(
-        bottom: false,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
-          children: [
-            _topBar(context),
-            const SizedBox(height: 14),
-            _photo(),
-            const SizedBox(height: 16),
-            _infoCard(),
-            const SizedBox(height: 20),
-            const Text(
-              'الموقع',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: C.text),
-            ),
-            const SizedBox(height: 12),
-            _gpsCard(context),
-          ],
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: C.bg,
+        body: SafeArea(
+          bottom: false,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
+            children: [
+              _topBar(context),
+              const SizedBox(height: 14),
+              _photo(),
+              const SizedBox(height: 16),
+              _infoCard(),
+              const SizedBox(height: 20),
+              const Text(
+                'الموقع',
+                style: TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.w800, color: C.text),
+              ),
+              const SizedBox(height: 12),
+              _gpsCard(context),
+            ],
+          ),
         ),
       ),
     );
@@ -974,7 +1042,8 @@ class CenterDetailsScreen extends StatelessWidget {
         child: Container(
           width: 44,
           height: 44,
-          decoration: const BoxDecoration(color: C.circle, shape: BoxShape.circle),
+          decoration:
+          const BoxDecoration(color: C.circle, shape: BoxShape.circle),
           child: const Icon(Icons.arrow_back_rounded, color: C.primary, size: 24),
         ),
       ),
@@ -984,7 +1053,8 @@ class CenterDetailsScreen extends StatelessWidget {
           center.name,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: C.text),
+          style: const TextStyle(
+              fontSize: 18, fontWeight: FontWeight.w800, color: C.text),
         ),
       ),
     ],
@@ -1014,14 +1084,16 @@ class CenterDetailsScreen extends StatelessWidget {
                 border: Border.all(color: const Color(0xFFE3E9F2)),
               ),
               child: ClipOval(
-                child: AppImage(center.logo, width: 62, height: 62, fit: BoxFit.contain),
+                child: AppImage(center.logo,
+                    width: 62, height: 62, fit: BoxFit.contain),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 center.name,
-                style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: C.text),
+                style: const TextStyle(
+                    fontSize: 19, fontWeight: FontWeight.w800, color: C.text),
               ),
             ),
           ],
@@ -1037,12 +1109,14 @@ class CenterDetailsScreen extends StatelessWidget {
           children: center.tags
               .map(
                 (t) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: const Color(0xFFEAF2FD),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Text(t, style: const TextStyle(fontSize: 12, color: C.primary)),
+              child: Text(t,
+                  style: const TextStyle(fontSize: 12, color: C.primary)),
             ),
           )
               .toList(),
@@ -1075,7 +1149,8 @@ class CenterDetailsScreen extends StatelessWidget {
                 options: MapOptions(
                   initialCenter: _point,
                   initialZoom: 15,
-                  interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
+                  interactionOptions:
+                  const InteractionOptions(flags: InteractiveFlag.none),
                 ),
                 children: [
                   TileLayer(
@@ -1088,7 +1163,8 @@ class CenterDetailsScreen extends StatelessWidget {
                         point: _point,
                         width: 48,
                         height: 48,
-                        child: const Icon(Icons.location_on, size: 44, color: Color(0xFFE11D48)),
+                        child: const Icon(Icons.location_on,
+                            size: 44, color: Color(0xFFE11D48)),
                       ),
                     ],
                   ),
@@ -1125,7 +1201,8 @@ class CenterDetailsScreen extends StatelessWidget {
                     backgroundColor: C.primary,
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24)),
                   ),
                 ),
               ),

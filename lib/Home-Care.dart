@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'doctor_home.dart' show DoctorHomeCareScreen;
+import 'Service Home care screen.dart' show HomeCareScreen;
 
 void main() {
   runApp(const HomeCareApp());
@@ -193,53 +194,67 @@ class _DoctorCard extends StatelessWidget {
   }
 }
 
+// ======================= كارت خدمة رعاية منزلية =======================
 class _NursingCard extends StatelessWidget {
   const _NursingCard({required this.imgW});
   final double imgW;
 
   @override
   Widget build(BuildContext context) {
-    return _Card(
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _Pill(Icons.favorite_rounded, 'رعاية متكاملة'),
-                const SizedBox(height: 8),
-                const Text(
-                  'خدمة رعاية منزلية',
-                  style: TextStyle(fontSize: 20, height: 1.25, fontWeight: FontWeight.w800, color: _C.navy),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'ممرضين وممرضات متخصصين لتقديم الرعاية الصحية والتمريضية في منزلك.',
-                  style: TextStyle(fontSize: 11.5, height: 1.5, color: _C.grey),
-                ),
-                const SizedBox(height: 12),
-                const _FeaturesRow([
-                  _Feature(Icons.health_and_safety_outlined, 'متابعة مستمرة'),
-                  _Feature(Icons.favorite_border_rounded, 'رعاية يومية أو حسب الحاجة'),
-                  _Feature(Icons.person_outline_rounded, 'طاقم مدرب ومؤهل'),
-                ]),
-                const SizedBox(height: 14),
-                _ActionButton(text: 'اطلب خدمة الرعاية المنزلية', filled: false, onTap: () {}),
-              ],
+    void open() => Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const HomeCareScreen()),
+    );
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: open,
+      child: _Card(
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _Pill(Icons.favorite_rounded, 'رعاية متكاملة'),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'خدمة رعاية منزلية',
+                    style: TextStyle(fontSize: 20, height: 1.25, fontWeight: FontWeight.w800, color: _C.navy),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'ممرضين وممرضات متخصصين لتقديم الرعاية الصحية والتمريضية في منزلك.',
+                    style: TextStyle(fontSize: 11.5, height: 1.5, color: _C.grey),
+                  ),
+                  const SizedBox(height: 12),
+                  const _FeaturesRow([
+                    _Feature(Icons.health_and_safety_outlined, 'متابعة مستمرة'),
+                    _Feature(Icons.favorite_border_rounded, 'رعاية يومية أو حسب الحاجة'),
+                    _Feature(Icons.person_outline_rounded, 'طاقم مدرب ومؤهل'),
+                  ]),
+                  const SizedBox(height: 14),
+                  _ActionButton(
+                    text: 'اطلب خدمة الرعاية المنزلية',
+                    filled: false,
+                    onTap: open,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          // الصورة (شمال)
-          _Blob(
-            path: HomeCareAssets.nursingCare,
-            width: imgW,
-            height: imgW * 1.15,
-            mirror: true,
-            badgeIcon: Icons.volunteer_activism_outlined,
-            badgeAlignment: Alignment.bottomLeft,
-          ),
-        ],
+            const SizedBox(width: 12),
+            // الصورة (شمال)
+            _Blob(
+              path: HomeCareAssets.nursingCare,
+              width: imgW,
+              height: imgW * 1.15,
+              mirror: true,
+              badgeIcon: Icons.volunteer_activism_outlined,
+              badgeAlignment: Alignment.bottomLeft,
+            ),
+          ],
+        ),
       ),
     );
   }
