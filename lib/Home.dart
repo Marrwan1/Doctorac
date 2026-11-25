@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'Home-Care.dart' show HomeCarePage;
 import 'pharmacy_home_screen.dart' show PharmacyHomeScreen;
+import 'profile_screen.dart' show ProfileScreen;
 import 'search_screen.dart' show SearchScreen;
 import 'labtests_radiology_Screen.dart' show LabTestsRadiologyScreen;
 
@@ -271,7 +272,7 @@ class _HomePageState extends State<HomePage> {
                 _homeTab(),
                 _placeholder(Icons.calendar_month_outlined, 'مواعيدي'),
                 _placeholder(Icons.account_balance_wallet_outlined, 'محفظتي'),
-                _placeholder(Icons.account_circle_outlined, 'حسابي'),
+                const ProfileScreen(),
               ],
             ),
           ),
@@ -378,12 +379,15 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration:
-                      const BoxDecoration(color: C.circle, shape: BoxShape.circle),
-                      child: const Icon(Icons.person, color: C.primary, size: 24),
+                    GestureDetector(
+                      onTap: () => setState(() => tab = 3),
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: const BoxDecoration(
+                            color: C.circle, shape: BoxShape.circle),
+                        child: const Icon(Icons.person, color: C.primary, size: 24),
+                      ),
                     ),
                   ],
                 ),

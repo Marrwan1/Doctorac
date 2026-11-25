@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "87073671876",
+    "project_id": "doctorac-ef5c0",
+    "storage_bucket": "doctorac-ef5c0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:87073671876:android:3b695a931e3c8cb2b89791",
+        "android_client_info": {
+          "package_name": "com.example.doctorac"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3eYXNDhHq16uCPiiYt_8aM9xR0djFWzc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

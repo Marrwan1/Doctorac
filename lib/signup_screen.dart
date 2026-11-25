@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'auth_service.dart';
+import 'Home.dart' show HomePage;
+
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
@@ -26,6 +29,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _confirmCtrl = TextEditingController();
   bool _hidePass = true;
   bool _hideConfirm = true;
+  bool _loading = false;
 
   @override
   void dispose() {
@@ -37,22 +41,46 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
-  void _createAccount() {
-    if (_formKey.currentState!.validate()) {
-      // TODO: اربطي هنا بالـ backend / Firebase
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تم إنشاء الحساب', )),
+  void _snack(String msg) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _createAccount() async {
+    if (_loading || !_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
+    setState(() => _loading = true);
+    try {
+      await AuthService.signUp(
+        name: _nameCtrl.text,
+        email: _emailCtrl.text,
+        phone: _phoneCtrl.text,
+        password: _passCtrl.text,
       );
+      if (!mounted) return;
+      _snack('تم إنشاء الحساب بنجاح');
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomePage()),
+        (_) => false,
+      );
+    } on AuthException catch (e) {
+      if (mounted) _snack(e.message);
+    } catch (_) {
+      if (mounted) _snack('حصل خطأ غير متوقع، حاول مرة أخرى');
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   InputDecoration _input(String hint, IconData icon, {Widget? suffix}) {
     OutlineInputBorder b(Color c) => OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-      borderSide: BorderSide(color: c),
-    );
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(color: c),
+        );
     return InputDecoration(
       hintText: hint,
+      hintStyle: const TextStyle(color: _grey, fontSize: 14),
       prefixIcon: Icon(icon, color: _blue, size: 22),
       suffixIcon: suffix,
       filled: true,
@@ -67,7 +95,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Widget _eye(bool hidden, VoidCallback onTap) {
     return IconButton(
-      icon: Icon(hidden ? Icons.visibility_off : Icons.visibility, size: 20),
+      icon: Icon(
+        hidden ? Icons.visibility_off : Icons.visibility,
+        size: 20,
+        color: _grey,
+      ),
       onPressed: onTap,
     );
   }
@@ -79,21 +111,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
       },
       child: Text(
         text,
+        style: const TextStyle(
+          color: _blue,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
 
   Widget _field(
-      TextEditingController ctrl,
-      String hint,
-      IconData icon,
-      String? Function(String?) validator, {
-        TextInputType? type,
-        bool ltr = false,
-        bool obscure = false,
-        Widget? suffix,
-        TextInputAction action = TextInputAction.next,
-      }) {
+    TextEditingController ctrl,
+    String hint,
+    IconData icon,
+    String? Function(String?) validator, {
+    TextInputType? type,
+    bool ltr = false,
+    bool obscure = false,
+    Widget? suffix,
+    TextInputAction action = TextInputAction.next,
+  }) {
     return TextFormField(
       controller: ctrl,
       keyboardType: type,
@@ -102,12 +139,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
       textDirection: ltr ? TextDirection.ltr : null,
       decoration: _input(hint, icon, suffix: suffix),
       validator: validator,
+      onFieldSubmitted: action == TextInputAction.done
+          ? (_) => _createAccount()
+          : null,
     );
   }
 
   Widget _mainButton() {
     return GestureDetector(
-      onTap: _createAccount,
+      onTap: _loading ? null : _createAccount,
       child: Container(
         height: 54,
         alignment: Alignment.center,
@@ -116,35 +156,49 @@ class _SignUpScreenState extends State<SignUpScreen> {
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: _blue.withOpacity(0.3),
+              color: _blue.withValues(alpha: 0.3),
               blurRadius: 14,
               offset: const Offset(0, 6),
             ),
           ],
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'إنشاء الحساب',
-            ),
-            const SizedBox(width: 8),
-            const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-          ],
-        ),
+        child: _loading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: Colors.white,
+                ),
+              )
+            : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'إنشاء الحساب',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                ],
+              ),
       ),
     );
   }
 
   Widget _orDivider() {
-    return Row(
+    return const Row(
       children: [
-        const Expanded(child: Divider(color: _border)),
+        Expanded(child: Divider(color: _border)),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text('أو'),
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          child: Text('أو', style: TextStyle(color: _grey, fontSize: 13)),
         ),
-        const Expanded(child: Divider(color: _border)),
+        Expanded(child: Divider(color: _border)),
       ],
     );
   }
@@ -153,9 +207,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return SizedBox(
       height: 54,
       child: OutlinedButton(
-        onPressed: () {
-          // TODO: التسجيل بحساب Google
-        },
+        onPressed: () => _snack('التسجيل عبر Google هيتفعّل قريباً'),
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: _border, width: 1.5),
           backgroundColor: Colors.white,
@@ -163,22 +215,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
             borderRadius: BorderRadius.circular(30),
           ),
         ),
-        child: Row(
+        child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               'G',
+              style: TextStyle(
+                color: Color(0xFF4285F4),
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             Text(
               'الاشتراك عبر Google',
-
+              style: TextStyle(
+                color: _navy,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
       ),
     );
   }
+
   Widget _form(double width, double gap) {
     return SizedBox(
       width: width,
@@ -190,27 +252,34 @@ class _SignUpScreenState extends State<SignUpScreen> {
           children: [
             Center(child: Image.asset(_logo, height: 56)),
             const SizedBox(height: 4),
-            Center(
+            const Center(
               child: Text(
                 'رعايتك الصحية .. أسهل',
+                style: TextStyle(color: _grey, fontSize: 13),
               ),
             ),
             SizedBox(height: gap * 1.8),
-            Text(
+            const Text(
               'إنشاء حساب جديد',
               textAlign: TextAlign.center,
+              style: TextStyle(
+                color: _navy,
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+              ),
             ),
             const SizedBox(height: 4),
-            Text(
+            const Text(
               'يرجى إدخال بياناتك للبدء واستخدام جميع مزايا التطبيق',
               textAlign: TextAlign.center,
+              style: TextStyle(color: _grey, fontSize: 13, height: 1.5),
             ),
             SizedBox(height: gap * 1.4),
             _field(
               _nameCtrl,
               'الاسم الكامل',
               Icons.person_outline,
-                  (v) => (v == null || v.trim().length < 3)
+              (v) => (v == null || v.trim().length < 3)
                   ? 'اكتب اسمك الكامل'
                   : null,
             ),
@@ -219,7 +288,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               _emailCtrl,
               'البريد الإلكتروني',
               Icons.mail_outline,
-                  (v) {
+              (v) {
                 final ok = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
                     .hasMatch((v ?? '').trim());
                 return ok ? null : 'اكتب بريد إلكتروني صحيح';
@@ -232,7 +301,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               _phoneCtrl,
               'رقم الهاتف',
               Icons.phone_outlined,
-                  (v) => (v == null || v.trim().length < 10)
+              (v) => (v == null || v.trim().length < 10)
                   ? 'اكتب رقم هاتف صحيح'
                   : null,
               type: TextInputType.phone,
@@ -243,13 +312,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
               _passCtrl,
               'كلمة المرور',
               Icons.lock_outline,
-                  (v) => (v == null || v.length < 6)
+              (v) => (v == null || v.length < 6)
                   ? 'كلمة المرور 6 أحرف على الأقل'
                   : null,
               obscure: _hidePass,
               suffix: _eye(
                 _hidePass,
-                    () => setState(() => _hidePass = !_hidePass),
+                () => setState(() => _hidePass = !_hidePass),
               ),
             ),
             SizedBox(height: gap),
@@ -257,12 +326,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
               _confirmCtrl,
               'تأكيد كلمة المرور',
               Icons.lock_outline,
-                  (v) => v != _passCtrl.text ? 'كلمتا المرور غير متطابقتين' : null,
+              (v) => v != _passCtrl.text ? 'كلمتا المرور غير متطابقتين' : null,
               obscure: _hideConfirm,
               action: TextInputAction.done,
               suffix: _eye(
                 _hideConfirm,
-                    () => setState(() => _hideConfirm = !_hideConfirm),
+                () => setState(() => _hideConfirm = !_hideConfirm),
               ),
             ),
             SizedBox(height: gap * 1.8),
@@ -272,16 +341,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
             SizedBox(height: gap),
             _googleButton(),
             SizedBox(height: gap * 1.4),
-            Text(
+            const Text(
               'بإنشاء حسابك، فإنك توافق على',
               textAlign: TextAlign.center,
+              style: TextStyle(color: _grey, fontSize: 12),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _link('شروط الاستخدام'),
-                Text(
+                const Text(
                   '  و  ',
+                  style: TextStyle(color: _grey, fontSize: 12),
                 ),
                 _link('سياسة الخصوصية'),
               ],
@@ -368,15 +439,17 @@ class _WavePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final back = Paint()..color = const Color(0xFFD6E6FB).withOpacity(0.7);
-    final front = Paint()..color = const Color(0xFFBFD8F8).withOpacity(0.5);
+    final back = Paint()
+      ..color = const Color(0xFFD6E6FB).withValues(alpha: 0.7);
+    final front = Paint()
+      ..color = const Color(0xFFBFD8F8).withValues(alpha: 0.5);
 
     final p1 = Path()
       ..moveTo(0, size.height * 0.45)
       ..quadraticBezierTo(size.width * 0.3, size.height * 0.05,
           size.width * 0.6, size.height * 0.35)
-      ..quadraticBezierTo(size.width * 0.85, size.height * 0.6, size.width,
-          size.height * 0.3)
+      ..quadraticBezierTo(
+          size.width * 0.85, size.height * 0.6, size.width, size.height * 0.3)
       ..lineTo(size.width, size.height)
       ..lineTo(0, size.height)
       ..close();
@@ -385,8 +458,8 @@ class _WavePainter extends CustomPainter {
       ..moveTo(0, size.height * 0.7)
       ..quadraticBezierTo(size.width * 0.35, size.height * 0.4,
           size.width * 0.7, size.height * 0.7)
-      ..quadraticBezierTo(size.width * 0.9, size.height * 0.85, size.width,
-          size.height * 0.6)
+      ..quadraticBezierTo(
+          size.width * 0.9, size.height * 0.85, size.width, size.height * 0.6)
       ..lineTo(size.width, size.height)
       ..lineTo(0, size.height)
       ..close();

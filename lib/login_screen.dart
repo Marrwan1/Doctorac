@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'auth_service.dart';
 import 'Home.dart' show HomePage;
 import 'signup_screen.dart';
 
@@ -27,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _idCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _hidePass = true;
+  bool _loading = false;
 
   @override
   void dispose() {
@@ -35,13 +37,48 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _login() {
-    if (_formKey.currentState!.validate()) {
-      // TODO: اربطي هنا بالـ backend / Firebase
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
+  static final _emailRe = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
+  void _snack(String msg) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _login() async {
+    if (_loading || !_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
+    setState(() => _loading = true);
+    try {
+      await AuthService.signIn(
+        email: _idCtrl.text,
+        password: _passCtrl.text,
       );
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomePage()),
+        (_) => false,
+      );
+    } on AuthException catch (e) {
+      if (mounted) _snack(e.message);
+    } catch (_) {
+      if (mounted) _snack('حصل خطأ غير متوقع، حاول مرة أخرى');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _forgotPassword() async {
+    final email = _idCtrl.text.trim();
+    if (!_emailRe.hasMatch(email)) {
+      _snack('اكتب بريدك الإلكتروني الأول');
+      return;
+    }
+    try {
+      await AuthService.sendPasswordReset(email);
+      if (mounted) _snack('بعتنا رابط استرجاع كلمة المرور على بريدك');
+    } on AuthException catch (e) {
+      if (mounted) _snack(e.message);
     }
   }
 
@@ -75,7 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _mainButton() {
     return GestureDetector(
-      onTap: _login,
+      onTap: _loading ? null : _login,
       child: Container(
         height: 54,
         alignment: Alignment.center,
@@ -90,21 +127,30 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ],
         ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'تسجيل الدخول',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
+        child: _loading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: Colors.white,
+                ),
+              )
+            : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'تسجيل الدخول',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                ],
               ),
-            ),
-            SizedBox(width: 8),
-            Icon(Icons.arrow_back, color: Colors.white, size: 20),
-          ],
-        ),
       ),
     );
   }
@@ -126,9 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return SizedBox(
       height: 54,
       child: OutlinedButton(
-        onPressed: () {
-          // TODO: تسجيل الدخول بحساب Google
-        },
+        onPressed: () => _snack('تسجيل الدخول عبر Google هيتفعّل قريباً'),
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: _border, width: 1.5),
           backgroundColor: Colors.white,
@@ -191,15 +235,16 @@ class _LoginScreenState extends State<LoginScreen> {
             SizedBox(height: gap * 1.4),
             TextFormField(
               controller: _idCtrl,
+              keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
               textDirection: TextDirection.ltr,
               decoration: _input(
-                'البريد الإلكتروني أو رقم الهاتف',
+                'البريد الإلكتروني',
                 Icons.mail_outline,
               ),
-              validator: (v) => (v == null || v.trim().isEmpty)
-                  ? 'اكتب البريد أو رقم الهاتف'
-                  : null,
+              validator: (v) => _emailRe.hasMatch((v ?? '').trim())
+                  ? null
+                  : 'اكتب بريد إلكتروني صحيح',
             ),
             SizedBox(height: gap),
             TextFormField(
@@ -225,9 +270,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Align(
               alignment: AlignmentDirectional.centerStart,
               child: TextButton(
-                onPressed: () {
-                  // TODO: صفحة استرجاع كلمة المرور
-                },
+                onPressed: _forgotPassword,
                 child: const Text(
                   'نسيت كلمة المرور؟',
                   style: TextStyle(
